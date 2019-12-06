@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net47;netcoreapp2.0;netstandard2.1</TargetFrameworks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FSharp.Core" Version="4.7.0" />
+    <PackageReference Include="ILGPU" Version="0.7.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="FSharpKernelLoaders.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>FSharpKernelLoaders.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="FSharpKernelLoaders.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>FSharpKernelLoaders.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+</Project>

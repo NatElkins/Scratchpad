@@ -18,8 +18,7 @@ let main argv =
     for acceleratorId in Accelerator.Accelerators do
         use accelerator = Accelerator.Create(context,acceleratorId)
         Console.WriteLine("Performing operations on {0}",accelerator)
-        let action= Action<Index,ArrayView<int>,int>(Test.MyKernel)
-        let kernel = accelerator.LoadAutoGroupedStreamKernel<Index, ArrayView<int>, int>(action);
+        let kernel = accelerator.LoadAutoGroupedStreamKernel<Index, ArrayView<int>, int>(Test.MyKernel);
         use buffer = accelerator.Allocate<int>(1024)
         kernel.Invoke(!> buffer.Length,buffer.View,42)
         accelerator.Synchronize()
