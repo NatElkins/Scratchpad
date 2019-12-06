@@ -5,6 +5,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="FSharpKernels.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>FSharpKernels.tt</DependentUpon>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="4.7.0" />
     <PackageReference Include="ILGPU" Version="0.7.0" />
   </ItemGroup>
@@ -13,6 +21,10 @@
     <None Update="FSharpKernelLoaders.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>FSharpKernelLoaders.cs</LastGenOutput>
+    </None>
+    <None Update="FSharpKernels.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>FSharpKernels.cs</LastGenOutput>
     </None>
   </ItemGroup>
 
@@ -25,6 +37,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>FSharpKernelLoaders.tt</DependentUpon>
+    </Compile>
+    <Compile Update="FSharpKernels.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>FSharpKernels.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 

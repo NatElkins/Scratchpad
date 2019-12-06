@@ -20,7 +20,7 @@ let main argv =
         Console.WriteLine("Performing operations on {0}",accelerator)
         let kernel = accelerator.LoadAutoGroupedStreamKernel<Index, ArrayView<int>, int>(Test.MyKernel);
         use buffer = accelerator.Allocate<int>(1024)
-        kernel.Invoke(!> buffer.Length,buffer.View,42)
+        kernel !> buffer.Length buffer.View 42
         accelerator.Synchronize()
         let data = buffer.GetAsArray()
         for i = 0 to data.Length - 1 do

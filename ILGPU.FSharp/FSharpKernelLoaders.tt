@@ -22,8 +22,6 @@
     {
         TypeParams = string.Join(", ", from rangeIdx in range select $"T{rangeIdx}"),
         FSharpTypeParams = string.Join(", ", from rangeIdx in range select $"FSharpFunc<T{rangeIdx}") + ", Unit" + string.Join("", from rangeIdx in range select $">"),
-        DefaultStreamLambdaParams = string.Join(", ", from rangeIdx in range select $"T{rangeIdx} param{rangeIdx}"),
-        DefaultStreamArgs = string.Join(", ", from rangeIdx in range select $"param{rangeIdx}"),
         TypeRestrictions = string.Join(" ", from rangeIdx in range select $"where T{rangeIdx} : struct"),
         TypeParamDocumentation = string.Join("        /// ", from rangeIdx in range select
             $"<typeparam name=\"T{rangeIdx}\">Parameter type of parameter {rangeIdx}.</typeparam>{Environment.NewLine}"), 
@@ -55,7 +53,7 @@ namespace ILGPU.Runtime
         /// Note that implictly-grouped kernels will be launched with a group size
         /// of the current warp size of the accelerator.
         /// </remarks>
-        public static Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>> LoadKernel<TIndex, <#= delegateParams.TypeParams #>>(
+        public static FSharpFunc<AcceleratorStream, FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>>> LoadKernel<TIndex, <#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>> action)
             where TIndex : struct, IIndex
@@ -63,7 +61,8 @@ namespace ILGPU.Runtime
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
-            return accelerator.LoadKernel<Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>>(action.GetClosureMethodInfo());
+            var kernel = accelerator.LoadKernel<Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>>(action.GetClosureMethodInfo());
+            return new FSharpKernel<TIndex, <#= delegateParams.TypeParams #>>(kernel);
         }
 
         /// <summary>
@@ -78,15 +77,14 @@ namespace ILGPU.Runtime
         /// Note that implictly-grouped kernels will be launched with a group size
         /// of the current warp size of the accelerator.
         /// </remarks>
-        public static Action<TIndex, <#= delegateParams.TypeParams #>> LoadStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
+        public static FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>> LoadStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>> action)
             where TIndex : struct, IIndex
             <#= delegateParams.TypeRestrictions #>
         {
             var baseKernel = accelerator.LoadKernel<TIndex, <#= delegateParams.TypeParams #>>(action);
-            return (TIndex index, <#= delegateParams.DefaultStreamLambdaParams #>) =>
-                baseKernel(accelerator.DefaultStream, index, <#= delegateParams.DefaultStreamArgs #>);
+            return baseKernel.Invoke(accelerator.DefaultStream);
         }
 
         /// <summary>
@@ -103,7 +101,7 @@ namespace ILGPU.Runtime
         /// Note that implictly-grouped kernels will be launched with a group size
         /// of the current warp size of the accelerator.
         /// </remarks>
-        public static Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>> LoadKernel<TIndex, <#= delegateParams.TypeParams #>>(
+        public static FSharpFunc<AcceleratorStream, FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>>> LoadKernel<TIndex, <#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>> action,
             KernelSpecialization specialization)
@@ -112,9 +110,10 @@ namespace ILGPU.Runtime
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
-            return accelerator.LoadKernel<Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>>(
+            var kernel = accelerator.LoadKernel<Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>>(
                 action.GetClosureMethodInfo(),
                 specialization);
+            return new FSharpKernel<TIndex, <#= delegateParams.TypeParams #>>(kernel);
         }
 
         /// <summary>
@@ -130,7 +129,7 @@ namespace ILGPU.Runtime
         /// Note that implictly-grouped kernels will be launched with a group size
         /// of the current warp size of the accelerator.
         /// </remarks>
-        public static Action<TIndex, <#= delegateParams.TypeParams #>> LoadStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
+        public static FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>> LoadStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>> action,
             KernelSpecialization specialization)
@@ -138,8 +137,7 @@ namespace ILGPU.Runtime
             <#= delegateParams.TypeRestrictions #>
         {
             var baseKernel = accelerator.LoadKernel<TIndex, <#= delegateParams.TypeParams #>>(action, specialization);
-            return (TIndex index, <#= delegateParams.DefaultStreamLambdaParams #>) =>
-                baseKernel(accelerator.DefaultStream, index, <#= delegateParams.DefaultStreamArgs #>);
+            return baseKernel.Invoke(accelerator.DefaultStream);
         }
 
 <#      // LoadImplicitlyGroupedKernel #>
@@ -158,7 +156,7 @@ namespace ILGPU.Runtime
         /// Note that implictly-grouped kernel will be launched with the given
         /// group size.
         /// </remarks>
-        public static Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>> LoadImplicitlyGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(
+        public static FSharpFunc<AcceleratorStream, FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>>> LoadImplicitlyGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>> action,
             int customGroupSize)
@@ -167,9 +165,10 @@ namespace ILGPU.Runtime
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
-            return accelerator.LoadImplicitlyGroupedKernel<Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>>(
+            var kernel = accelerator.LoadImplicitlyGroupedKernel<Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>>(
                 action.GetClosureMethodInfo(),
                 customGroupSize);
+            return new FSharpKernel<TIndex, <#= delegateParams.TypeParams #>>(kernel);
         }
 
         /// <summary>
@@ -186,7 +185,7 @@ namespace ILGPU.Runtime
         /// Note that implictly-grouped kernel will be launched with the given
         /// group size.
         /// </remarks>
-        public static Action<TIndex, <#= delegateParams.TypeParams #>> LoadImplicitlyGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
+        public static FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>> LoadImplicitlyGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>> action,
             int customGroupSize)
@@ -194,8 +193,7 @@ namespace ILGPU.Runtime
             <#= delegateParams.TypeRestrictions #>
         {
             var baseKernel = accelerator.LoadImplicitlyGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(action, customGroupSize);
-            return (TIndex index, <#= delegateParams.DefaultStreamLambdaParams #>) =>
-                baseKernel(accelerator.DefaultStream, index, <#= delegateParams.DefaultStreamArgs #>);
+            return baseKernel.Invoke(accelerator.DefaultStream);
         }
 
 <#      // LoadAutoGroupedKernel #>
@@ -208,7 +206,7 @@ namespace ILGPU.Runtime
         /// <param name="accelerator">The current accelerator.</param>
         /// <param name="action">The action to compile into a kernel.</param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
-        public static Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>> LoadAutoGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(
+        public static FSharpFunc<AcceleratorStream, FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>>> LoadAutoGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>> action)
             where TIndex : struct, IIndex
@@ -216,7 +214,8 @@ namespace ILGPU.Runtime
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
-            return accelerator.LoadAutoGroupedKernel<Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>>(action.GetClosureMethodInfo());
+            var kernel = accelerator.LoadAutoGroupedKernel<Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>>(action.GetClosureMethodInfo());
+            return new FSharpKernel<TIndex, <#= delegateParams.TypeParams #>>(kernel);
         }
 
         /// <summary>
@@ -230,7 +229,7 @@ namespace ILGPU.Runtime
         /// <param name="groupSize">The estimated group size to gain maximum occupancy on this device.</param>
         /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
-        public static Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>> LoadAutoGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(
+        public static FSharpFunc<AcceleratorStream, FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>>> LoadAutoGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>> action,
             out int groupSize,
@@ -240,10 +239,11 @@ namespace ILGPU.Runtime
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
-            return accelerator.LoadAutoGroupedKernel<Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>>(
+            var kernel = accelerator.LoadAutoGroupedKernel<Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>>(
                 action.GetClosureMethodInfo(),
                 out groupSize,
                 out minGridSize);
+            return new FSharpKernel<TIndex, <#= delegateParams.TypeParams #>>(kernel);
         }
 
         /// <summary>
@@ -254,15 +254,14 @@ namespace ILGPU.Runtime
         /// <param name="accelerator">The current accelerator.</param>
         /// <param name="action">The action to compile into a kernel.</param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
-        public static Action<TIndex, <#= delegateParams.TypeParams #>> LoadAutoGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
+        public static FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>> LoadAutoGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>> action)
             where TIndex : struct, IIndex
             <#= delegateParams.TypeRestrictions #>
         {
             var baseKernel = accelerator.LoadAutoGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(action);
-            return (TIndex index, <#= delegateParams.DefaultStreamLambdaParams #>) =>
-                baseKernel(accelerator.DefaultStream, index, <#= delegateParams.DefaultStreamArgs #>);
+            return baseKernel.Invoke(accelerator.DefaultStream);
         }
 
         /// <summary>
@@ -275,7 +274,7 @@ namespace ILGPU.Runtime
         /// <param name="groupSize">The estimated group size to gain maximum occupancy on this device.</param>
         /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
-        public static Action<TIndex, <#= delegateParams.TypeParams #>> LoadAutoGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
+        public static FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>> LoadAutoGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             FSharpFunc<TIndex, <#= delegateParams.FSharpTypeParams #>> action,
             out int groupSize,
@@ -287,8 +286,7 @@ namespace ILGPU.Runtime
                 action,
                 out groupSize,
                 out minGridSize);
-            return (TIndex index, <#= delegateParams.DefaultStreamLambdaParams #>) =>
-                baseKernel(accelerator.DefaultStream, index, <#= delegateParams.DefaultStreamArgs #>);
+            return baseKernel.Invoke(accelerator.DefaultStream);
         }
 
 <#  } #>
